@@ -1,16 +1,26 @@
 import React, { useState } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import {
+  SafeAreaView,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from 'react-native';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
 import { setOrigin, setDestination } from '../slices/navSlice';
 import expoConstants from 'expo-constants';
 
-
 const NavCard = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
-  const [step, setStep] = useState('pickup'); // 'pickup', 'destination', 'rideOptions'
+  const [step, setStep] = useState('pickup'); // Control the current step
+  const [pickupLocation, setPickupLocation] = useState(''); // Store pickup location description
+  const [destinationLocation, setDestinationLocation] = useState(''); // Store destination location description
   const googleApiKey = expoConstants.expoConfig.extra.googleApiKey;
 
   const handleSetLocation = (data, details, locationType) => {
@@ -25,12 +35,16 @@ const NavCard = () => {
       lng: details.geometry.location.lng,
     };
 
+    // Dispatch the location to your Redux store and advance the flow
     if (locationType === 'pickup') {
       dispatch(setOrigin(location));
-      setStep('destination'); // Move to next step after setting pickup
+      setPickupLocation(data.description);
+      setStep('destination'); // Move to destination selection
     } else if (locationType === 'destination') {
       dispatch(setDestination(location));
-      setStep('rideOptions'); // Move to next step after setting destination
+      setDestinationLocation(data.description);
+      // Navigate to the RideOptionsCard screen
+      navigation.navigate('RideOptionsCard');
     }
   };
 
@@ -42,45 +56,48 @@ const NavCard = () => {
       }}
       fetchDetails={true}
       query={{
-        key: googleApiKey, // Direct API key use for demonstration; use env variables or secure storage in production
+        key: googleApiKey,
         language: 'en',
         components: 'country:VI', // Restrict search to US Virgin Islands
       }}
       styles={autoCompleteStyles}
       enablePoweredByContainer={false}
-      minLength={2}
+      debounce={400}
       onFail={error => console.error(error)}
     />
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoidingView}>
-        <View style={styles.inner}>
-          <Text style={styles.title}>Where are you going?</Text>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0} // Adjust based on your header/navigation bar height
+      >
+          <Text style={styles.title}>Where can we take you today?</Text>
+          {step !== 'pickup' && (
+            <View style={styles.locationReview}>
+              <Text style={styles.locationText}>Pickup: {pickupLocation}</Text>
+              {destinationLocation && <Text style={styles.locationText}>Dropoff: {destinationLocation}</Text>}
+            </View>
+          )}
           <View style={styles.autocompleteContainer}>
             {step === 'pickup' && renderAutocomplete('Pickup Location', 'pickup')}
             {step === 'destination' && renderAutocomplete('Destination Location', 'destination')}
-            {step === 'rideOptions' && (
-              // Placeholder for RideOptions component
-              <Text style={{ alignSelf: 'center', marginTop: 20 }}>Select your ride options here.</Text>
-              // You could use a component or function here to select ride options
-            )}
           </View>
-          {step !== 'rideOptions' && (
+          {step === 'destination' && (
             <TouchableOpacity
-              onPress={() => setStep('destination')} // This button can be repurposed based on your flow needs
-              style={[styles.bookButton, styles.bookButtonDisabled]} // Conditionally style or disable this button based on your app logic
-              disabled={true} // Disable this as per your flow condition
+              onPress={() => setStep('pickup')}
+              style={styles.backButton}
             >
-              <Text style={styles.bookButtonText}>Next</Text>
+              <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
           )}
-        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-};
+          };
+
 
 const autoCompleteStyles = {
   container: {
@@ -111,7 +128,6 @@ const autoCompleteStyles = {
     shadowRadius: 5, // for ios shadow
     marginTop: 10,
   },
-  // Add more styles for other parts like separator, etc.
 };
 
 const styles = StyleSheet.create({
@@ -124,7 +140,6 @@ const styles = StyleSheet.create({
   },
   inner: {
     padding: 20,
-    flex: 1,
     justifyContent: 'space-between',
   },
   title: {
@@ -138,20 +153,26 @@ const styles = StyleSheet.create({
     flex: 0, // Ensure the GooglePlacesAutocomplete doesn't expand to fill space
     zIndex: 1, // Make sure this is above the elements behind it
   },
-  bookButton: {
+  backButton: {
     backgroundColor: 'black',
     padding: 16,
     borderRadius: 5,
     alignItems: 'center',
+    marginTop: 20,
   },
-  bookButtonDisabled: {
-    backgroundColor: 'grey',
-  },
-  bookButtonText: {
+  backButtonText: {
     fontSize: 20,
     color: 'white',
     fontWeight: 'bold',
   },
+  locationReview: {
+    marginBottom: 20,
+  },
+  locationText: {
+    fontSize: 16,
+    color: 'black',
+  },
+  // Add more styles as needed
 });
 
 export default NavCard;

@@ -1,11 +1,11 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import LoginScreen from '../screens/LoginScreen';
-import RegisterScreen from '../screens/RegisterScreen';
-import RoleSelectScreen from '../screens/RoleSelectScreen';
-import DriverDashboard from '../screens/DriverDashboard'; // Placeholder import
-import PassengerDashboard from '../screens/PassengerDashboard'; // Placeholder import
+import LoginScreen from '../screens/shared/LoginScreen';
+import RegisterScreen from '../screens/shared/RegisterScreen';
+import RoleSelectScreen from '../screens/shared/RoleSelectScreen';
+import DriverDashboard from '../screens/driver/DriverDashboard';
+import PassengerDashboard from '../screens/passenger/PassengerDashboard';
 import { Provider } from 'react-redux';
 import { configureStore } from "@reduxjs/toolkit";
 import navReducer from "../slices/navSlice";

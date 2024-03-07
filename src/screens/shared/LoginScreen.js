@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform } from 'react-native';
-import supabase from '../supabase/supabaseClient';
+import supabase from '../../supabase/supabaseClient';
 
 function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');

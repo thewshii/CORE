@@ -1,9 +1,9 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import PassengerMapView from './passenger/PassengerMapView';
-import PassengerProfile from './passenger/PassengerProfile';
-import RideOptionsCard from '../components/RideOptionsCard';
+import PassengerMapView from './PassengerMapView';
+import PassengerProfile from './PassengerProfile';
+import RideOptionsCard from '../../components/RideOptionsCard';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();

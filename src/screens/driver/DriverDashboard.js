@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import DriverMapView from './driver/DriverMapView';
-import DriverProfile from './driver/DriverProfile';
+import DriverMapView from './DriverMapView';
+import DriverProfile from './DriverProfile';
 
 const Tab = createBottomTabNavigator();
 
