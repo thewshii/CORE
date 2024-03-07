@@ -1,32 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import {
-  SafeAreaView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from 'react-native';
+import React, { useState } from 'react';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
-import { key } from '@env'; // Ensure your Google API key is correctly placed here
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
 import { setOrigin, setDestination } from '../slices/navSlice';
+import expoConstants from 'expo-constants';
+
 
 const NavCard = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
-  const [pickup, setPickup] = useState(null);
-  const [destination, setDestination] = useState(null);
-
-  // Validate Google API Key
-  useEffect(() => {
-    if (!key) {
-      Alert.alert('API Key Error', 'Google API key is not configured correctly.');
-    }
-  }, []);
+  const [step, setStep] = useState('pickup'); // 'pickup', 'destination', 'rideOptions'
+  const googleApiKey = expoConstants.expoConfig.extra.googleApiKey;
 
   const handleSetLocation = (data, details, locationType) => {
     if (!details) {
@@ -42,70 +27,55 @@ const NavCard = () => {
 
     if (locationType === 'pickup') {
       dispatch(setOrigin(location));
-      setPickup(location);
+      setStep('destination'); // Move to next step after setting pickup
     } else if (locationType === 'destination') {
       dispatch(setDestination(location));
-      setDestination(location);
+      setStep('rideOptions'); // Move to next step after setting destination
     }
   };
 
-  const handleBook = () => {
-    if (!pickup || !destination) {
-      Alert.alert('Missing Information', 'Please select both pickup and destination locations.');
-      return;
-    }
-    navigation.navigate('RideOptionsCard');
-  };
+  const renderAutocomplete = (placeholder, locationType) => (
+    <GooglePlacesAutocomplete
+      placeholder={placeholder}
+      onPress={(data, details = null) => {
+        handleSetLocation(data, details, locationType);
+      }}
+      fetchDetails={true}
+      query={{
+        key: googleApiKey, // Direct API key use for demonstration; use env variables or secure storage in production
+        language: 'en',
+        components: 'country:VI', // Restrict search to US Virgin Islands
+      }}
+      styles={autoCompleteStyles}
+      enablePoweredByContainer={false}
+      minLength={2}
+      onFail={error => console.error(error)}
+    />
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidingView}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoidingView}>
         <View style={styles.inner}>
           <Text style={styles.title}>Where are you going?</Text>
           <View style={styles.autocompleteContainer}>
-            <GooglePlacesAutocomplete
-              placeholder='Pickup Location'
-              onPress={(data, details = null) => {
-                handleSetLocation(data, details, 'pickup');
-              }}
-              fetchDetails={true}
-              query={{
-                key: key,
-                language: 'en',
-              }}
-              styles={autoCompleteStyles}
-              enablePoweredByContainer={false}
-              minLength={2}
-              // Add additional props for error handling if needed
-            />
+            {step === 'pickup' && renderAutocomplete('Pickup Location', 'pickup')}
+            {step === 'destination' && renderAutocomplete('Destination Location', 'destination')}
+            {step === 'rideOptions' && (
+              // Placeholder for RideOptions component
+              <Text style={{ alignSelf: 'center', marginTop: 20 }}>Select your ride options here.</Text>
+              // You could use a component or function here to select ride options
+            )}
           </View>
-          <View style={styles.autocompleteContainer}>
-            <GooglePlacesAutocomplete
-              placeholder='Destination Location'
-              onPress={(data, details = null) => {
-                handleSetLocation(data, details, 'destination');
-              }}
-              fetchDetails={true}
-              query={{
-                key: key,
-                language: 'en',
-              }}
-              styles={autoCompleteStyles}
-              enablePoweredByContainer={false}
-              minLength={2}
-              // Add additional props for error handling if needed
-            />
-          </View>
-          <TouchableOpacity
-            onPress={handleBook}
-            style={[styles.bookButton, !(pickup && destination) && styles.bookButtonDisabled]}
-            disabled={!(pickup && destination)}
-          >
-            <Text style={styles.bookButtonText}>Book</Text>
-          </TouchableOpacity>
+          {step !== 'rideOptions' && (
+            <TouchableOpacity
+              onPress={() => setStep('destination')} // This button can be repurposed based on your flow needs
+              style={[styles.bookButton, styles.bookButtonDisabled]} // Conditionally style or disable this button based on your app logic
+              disabled={true} // Disable this as per your flow condition
+            >
+              <Text style={styles.bookButtonText}>Next</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
