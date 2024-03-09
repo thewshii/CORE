@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react'; // Import useRef directly
 import { View, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, TouchableOpacity } from 'react-native';
 import { Icon } from 'react-native-elements';
 import { useNavigation } from '@react-navigation/native';
@@ -8,12 +8,40 @@ import MapViewDirections from 'react-native-maps-directions';
 import tw from 'tailwind-react-native-classnames';
 import RideOptionsCard from '../../components/RideOptionsCard';
 import NavCard from '../../components/NavCard';
-import useMapLogic from '../../hooks/useMapLogic';
+import useMapLogic from '../../hooks/useMapLogic'; // Assuming useMapLogic is correctly imported
 
 const PassengerMapView = () => {
   const Stack = createStackNavigator();
   const navigation = useNavigation();
-  const { mapRef, origin, destination, googleApiKey } = useMapLogic(); // Use the custom hook
+  const mapRef = useRef(null); // Use the useRef hook directly
+  const { origin, destination, googleApiKey } = useMapLogic(); // Destructuring from useMapLogic
+  
+  useEffect(() => {
+    if (!mapRef.current) return;
+  
+    // If both origin and destination are selected, fit the map to include both markers
+    if (origin && destination) {
+      // Create an array of marker coordinates
+      const markers = [
+        { latitude: origin.location.lat, longitude: origin.location.lng },
+        { latitude: destination.location.lat, longitude: destination.location.lng },
+      ];
+  
+      // Use Google Maps fitToCoordinates to include all markers in the view
+      mapRef.current.fitToCoordinates(markers, {
+        edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+        animated: true, // Enable animation
+      });
+    } else if (origin) {
+      // If only origin is selected, animate the map to center on the origin
+      mapRef.current.animateToRegion({
+        latitude: origin.location.lat,
+        longitude: origin.location.lng,
+        latitudeDelta: 0.005, // Adjust the zoom level
+        longitudeDelta: 0.005,
+      }, 1000); // Animation duration in milliseconds
+    }
+  }, [origin, destination]); // Dependency array includes both origin and destination  
 
   return (
     <KeyboardAvoidingView
@@ -36,8 +64,9 @@ const PassengerMapView = () => {
               style={tw`flex-1`}
               mapType="mutedStandard"
               initialRegion={{
-                latitude: 17.7320,
-                longitude: -64.7986,
+                // Use optional chaining (?.) to safely access nested properties
+                latitude: origin?.location?.lat || 18.3358, // Provide fallback coordinates
+                longitude: origin?.location?.lng || -64.8963,
                 latitudeDelta: 0.0922,
                 longitudeDelta: 0.0421,
               }}
@@ -50,7 +79,6 @@ const PassengerMapView = () => {
                   strokeWidth={3}
                   strokeColor="orange"
                   onError={(errorMessage) => {
-                    // Handle MapViewDirections error here
                     console.error('MapViewDirections error:', errorMessage);
                   }}
                 />
@@ -64,6 +92,17 @@ const PassengerMapView = () => {
                   title="Origin"
                   description={origin.description}
                   identifier="origin"
+                />
+              )}
+              {destination?.location && (
+                <Marker
+                  coordinate={{
+                    latitude: destination.location.lat,
+                    longitude: destination.location.lng,
+                  }}
+                  title="Destination"
+                  description={destination.description}
+                  identifier="destination"
                 />
               )}
             </MapView>

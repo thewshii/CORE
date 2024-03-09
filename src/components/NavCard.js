@@ -11,17 +11,18 @@ import {
 } from 'react-native';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { useNavigation } from '@react-navigation/native';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setOrigin, setDestination } from '../slices/navSlice';
 import expoConstants from 'expo-constants';
+import * as Location from 'expo-location';
 
 const NavCard = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
-  const [step, setStep] = useState('pickup'); // Control the current step
-  const [pickupLocation, setPickupLocation] = useState(''); // Store pickup location description
-  const [destinationLocation, setDestinationLocation] = useState(''); // Store destination location description
   const googleApiKey = expoConstants.expoConfig.extra.googleApiKey;
+  const origin = useSelector((state) => state.nav.origin);
+  const destination = useSelector((state) => state.nav.destination);
+  const [step, setStep] = useState(origin ? 'destination' : 'pickup');
 
   const handleSetLocation = (data, details, locationType) => {
     if (!details) {
@@ -31,73 +32,98 @@ const NavCard = () => {
 
     const location = {
       description: data.description,
-      lat: details.geometry.location.lat,
-      lng: details.geometry.location.lng,
+      location: {
+        lat: details.geometry.location.lat,
+        lng: details.geometry.location.lng,
+      },
     };
 
-    // Dispatch the location to your Redux store and advance the flow
     if (locationType === 'pickup') {
       dispatch(setOrigin(location));
-      setPickupLocation(data.description);
-      setStep('destination'); // Move to destination selection
-    } else if (locationType === 'destination') {
+      setStep('destination');
+    } else {
       dispatch(setDestination(location));
-      setDestinationLocation(data.description);
-      // Navigate to the RideOptionsCard screen
       navigation.navigate('RideOptionsCard');
     }
   };
 
-  const renderAutocomplete = (placeholder, locationType) => (
-    <GooglePlacesAutocomplete
-      placeholder={placeholder}
-      onPress={(data, details = null) => {
-        handleSetLocation(data, details, locationType);
-      }}
-      fetchDetails={true}
-      query={{
-        key: googleApiKey,
-        language: 'en',
-        components: 'country:VI', // Restrict search to US Virgin Islands
-      }}
-      styles={autoCompleteStyles}
-      enablePoweredByContainer={false}
-      debounce={400}
-      onFail={error => console.error(error)}
-    />
-  );
+  const handleCurrentLocationPress = async () => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Permission to access location was denied');
+      return;
+    }
+
+    let location = await Location.getCurrentPositionAsync({});
+    const { latitude, longitude } = location.coords;
+    const response = await Location.reverseGeocodeAsync({ latitude, longitude });
+    const address = response[0] || {};
+
+    const locationData = {
+      description: `Current Location: ${address.street}, ${address.city}`,
+      location: { lat: latitude, lng: longitude },
+    };
+
+    if (step === 'pickup') {
+      dispatch(setOrigin(locationData));
+      setStep('destination');
+    } else {
+      dispatch(setDestination(locationData));
+      navigation.navigate('RideOptionsCard');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0} // Adjust based on your header/navigation bar height
-      >
-          <Text style={styles.title}>Where can we take you today?</Text>
-          {step !== 'pickup' && (
-            <View style={styles.locationReview}>
-              <Text style={styles.locationText}>Pickup: {pickupLocation}</Text>
-              {destinationLocation && <Text style={styles.locationText}>Dropoff: {destinationLocation}</Text>}
-            </View>
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}>
+        <Text style={styles.title}>Where can we take you today?</Text>
+        <TouchableOpacity onPress={handleCurrentLocationPress} style={styles.currentLocationButton}>
+          <Text style={styles.currentLocationButtonText}>Use Current Location</Text>
+        </TouchableOpacity>
+        <View style={styles.autocompleteContainer}>
+          {step === 'pickup' && (
+            <GooglePlacesAutocomplete
+              placeholder='Pickup Location'
+              onPress={(data, details = null) => handleSetLocation(data, details, 'pickup')}
+              fetchDetails={true}
+              query={{
+                key: googleApiKey,
+                language: 'en',
+              }}
+              styles={autoCompleteStyles}
+              enablePoweredByContainer={false}
+              debounce={400}
+            />
           )}
-          <View style={styles.autocompleteContainer}>
-            {step === 'pickup' && renderAutocomplete('Pickup Location', 'pickup')}
-            {step === 'destination' && renderAutocomplete('Destination Location', 'destination')}
-          </View>
           {step === 'destination' && (
-            <TouchableOpacity
-              onPress={() => setStep('pickup')}
-              style={styles.backButton}
-            >
-              <Text style={styles.backButtonText}>Back</Text>
-            </TouchableOpacity>
+            <GooglePlacesAutocomplete
+              placeholder='Destination Location'
+              onPress={(data, details = null) => handleSetLocation(data, details, 'destination')}
+              fetchDetails={true}
+              query={{
+                key: googleApiKey,
+                language: 'en',
+              }}
+              styles={autoCompleteStyles}
+              enablePoweredByContainer={false}
+              debounce={400}
+            />
           )}
+        </View>
+        {step === 'destination' && (
+          <TouchableOpacity
+            onPress={() => setStep('pickup')}
+            style={styles.backButton}>
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-          };
-
+};
 
 const autoCompleteStyles = {
   container: {
@@ -121,11 +147,11 @@ const autoCompleteStyles = {
     borderRadius: 5,
     backgroundColor: '#FFFFFF',
     marginHorizontal: 10,
-    elevation: 1, // for android shadow
-    shadowColor: '#000000', // for ios shadow
-    shadowOffset: { width: 0, height: 5 }, // for ios shadow
-    shadowOpacity: 0.1, // for ios shadow
-    shadowRadius: 5, // for ios shadow
+    elevation: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
     marginTop: 10,
   },
 };
@@ -138,10 +164,6 @@ const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
   },
-  inner: {
-    padding: 20,
-    justifyContent: 'space-between',
-  },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
@@ -150,8 +172,8 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   autocompleteContainer: {
-    flex: 0, // Ensure the GooglePlacesAutocomplete doesn't expand to fill space
-    zIndex: 1, // Make sure this is above the elements behind it
+    flex: 0,
+    zIndex: 1,
   },
   backButton: {
     backgroundColor: 'black',
@@ -165,14 +187,17 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
-  locationReview: {
-    marginBottom: 20,
+  currentLocationButton: {
+    backgroundColor: '#e0e0e0',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginVertical: 10,
   },
-  locationText: {
+  currentLocationButtonText: {
     fontSize: 16,
     color: 'black',
   },
-  // Add more styles as needed
 });
 
 export default NavCard;
