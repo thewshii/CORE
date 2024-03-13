@@ -7,16 +7,19 @@ import RoleSelectScreen from '../screens/shared/RoleSelectScreen';
 import DriverDashboard from '../screens/driver/DriverDashboard';
 import PassengerDashboard from '../screens/passenger/PassengerDashboard';
 import { Provider } from 'react-redux';
-import { configureStore } from "@reduxjs/toolkit";
+import { configureStore, getDefaultMiddleware } from "@reduxjs/toolkit";
 import navReducer from "../slices/navSlice";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import ConfirmationScreen from '../screens/passenger/ConfirmationScreen';
 
 export const store = configureStore({
     reducer: {
         nav: navReducer,
     },
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware({
+        serializableCheck: false,
+    }),
 });
-
 
 const Stack = createStackNavigator();
 
@@ -33,6 +36,7 @@ function AppNavigator() {
         <Stack.Screen name='RoleSelect' component={RoleSelectScreen} options={{headerShown: false}}/>
         <Stack.Screen name='DriverDashboard' component={DriverDashboard} options={{headerShown: false}}/>
         <Stack.Screen name='PassengerDashboard' component={PassengerDashboard} options={{headerShown: false}}/>
+        <Stack.Screen name="Confirmation" component={ConfirmationScreen} />
       </Stack.Navigator>
     </NavigationContainer>
     </SafeAreaProvider>

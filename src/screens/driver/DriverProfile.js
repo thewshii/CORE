@@ -11,21 +11,22 @@ function DriverProfile() {
       console.log('Fetching driver profile from Supabase');
       const user = supabase.auth.user();
 
-      if (user) {
-        const { data: profileData, error } = await supabase
+      if (!user) {
+        console.error('Failed to fetch user details'); // gpt_pilot_debugging_log
+        return; // Ensuring we do not proceed if user details are missing
+      }
+
+      const { data: profileData, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
 
-        if (error) {
-          console.error('Error fetching profile:', error.message, error);
-        } else {
-          setProfile(profileData);
-          console.log('Profile fetched successfully:', profileData);
-        }
+      if (error) {
+        console.error('Error fetching profile:', error.message, error);
       } else {
-        console.log('No user found');
+        setProfile(profileData);
+        console.log('Profile fetched successfully:', profileData);
       }
 
       setLoading(false);

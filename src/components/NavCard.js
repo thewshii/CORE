@@ -1,203 +1,116 @@
 import React, { useState } from 'react';
-import {
-  SafeAreaView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from 'react-native';
+import { KeyboardAvoidingView, SafeAreaView, Text, View, Platform, TouchableOpacity } from 'react-native';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
-import { useNavigation } from '@react-navigation/native';
+import { Icon } from 'react-native-elements';
+import tw from 'tailwind-react-native-classnames';
 import { useDispatch, useSelector } from 'react-redux';
 import { setOrigin, setDestination } from '../slices/navSlice';
-import expoConstants from 'expo-constants';
-import * as Location from 'expo-location';
+import { useNavigation } from '@react-navigation/native';
+import Constants from 'expo-constants';
+import supabase from '/root/ubah-pilot/gpt-pilot/workspace/CORE/CORE/src/supabase/supabaseClient.js'
 
 const NavCard = () => {
+  const [destinationInputVisible, setDestinationInputVisible] = useState(false);
   const dispatch = useDispatch();
   const navigation = useNavigation();
-  const googleApiKey = expoConstants.expoConfig.extra.googleApiKey;
-  const origin = useSelector((state) => state.nav.origin);
-  const destination = useSelector((state) => state.nav.destination);
-  const [step, setStep] = useState(origin ? 'destination' : 'pickup');
+  const googleApiKey = Constants.expoConfig.extra.googleApiKey; 
+  
 
-  const handleSetLocation = (data, details, locationType) => {
-    if (!details) {
-      Alert.alert('Error', `Failed to fetch ${locationType} details. Please try again.`);
-      return;
-    }
-
-    const location = {
+  const handleOriginSelect = (data, details = null) => {
+    dispatch(setOrigin({
       description: data.description,
       location: {
-        lat: details.geometry.location.lat,
-        lng: details.geometry.location.lng,
+        latitude: details.geometry.location.lat,
+        longitude: details.geometry.location.lng,
       },
-    };
-
-    if (locationType === 'pickup') {
-      dispatch(setOrigin(location));
-      setStep('destination');
-    } else {
-      dispatch(setDestination(location));
-      navigation.navigate('RideOptionsCard');
-    }
+    }));
+    setDestinationInputVisible(true);
   };
 
-  const handleCurrentLocationPress = async () => {
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Permission to access location was denied');
-      return;
-    }
-
-    let location = await Location.getCurrentPositionAsync({});
-    const { latitude, longitude } = location.coords;
-    const response = await Location.reverseGeocodeAsync({ latitude, longitude });
-    const address = response[0] || {};
-
-    const locationData = {
-      description: `Current Location: ${address.street}, ${address.city}`,
-      location: { lat: latitude, lng: longitude },
-    };
-
-    if (step === 'pickup') {
-      dispatch(setOrigin(locationData));
-      setStep('destination');
-    } else {
-      dispatch(setDestination(locationData));
-      navigation.navigate('RideOptionsCard');
-    }
+  const handleDestinationSelect = (data, details = null) => {
+    dispatch(setDestination({
+      description: data.description,
+      location: details.geometry.location,
+    }));
+    navigation.navigate('RideOptionsCard'); // Ensure 'RideOptionsCard' is the correct name in your navigator setup
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidingView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}>
-        <Text style={styles.title}>Where can we take you today?</Text>
-        <TouchableOpacity onPress={handleCurrentLocationPress} style={styles.currentLocationButton}>
-          <Text style={styles.currentLocationButtonText}>Use Current Location</Text>
+    <SafeAreaView style={tw`bg-white flex-1`}>
+      <Text style={tw`text-center py-5 text-xl`}>Leh we pick you up!</Text>
+      <View style={tw`border-t border-gray-200 flex-shrink`}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={tw`flex-1`}>
+          <GooglePlacesAutocomplete
+            placeholder='Pah you deh?'
+            styles={toInputBoxStyles}
+            fetchDetails={true}
+            returnKeyType={'search'}
+            enablePoweredByContainer={false}
+            nearbyPlacesAPI='GooglePlacesSearch'
+            onPress={handleOriginSelect}
+            debounce={750}
+            query={{
+              key: googleApiKey,
+              language: 'en',
+              components: 'country:VI',
+            }}
+          />
+          {destinationInputVisible && (
+            <GooglePlacesAutocomplete
+              placeholder='Pah you goin?'
+              styles={toInputBoxStyles}
+              fetchDetails={true}
+              returnKeyType={'search'}
+              minLength={2}
+              enablePoweredByContainer={false}
+              nearbyPlacesAPI='GooglePlacesSearch'
+              onPress={handleDestinationSelect}
+              debounce={750}
+              query={{
+                key: googleApiKey,
+                language: 'en',
+                components: 'country:VI',
+              }}
+            />
+          )}
+        </KeyboardAvoidingView>
+      </View>
+      <View style={tw`flex-row bg-white justify-evenly py-2 mt-auto border-t border-gray-100`}>
+        <TouchableOpacity style={tw`flex-row justify-center bg-black w-24 px-4 py-3 rounded-full`} onPress={() => navigation.navigate('RoleSelect') }>
+          <Icon name='home' type='material' color='green' size={16} />
+          <Text style={tw`text-center text-white`}>Home</Text>
         </TouchableOpacity>
-        <View style={styles.autocompleteContainer}>
-          {step === 'pickup' && (
-            <GooglePlacesAutocomplete
-              placeholder='Pickup Location'
-              onPress={(data, details = null) => handleSetLocation(data, details, 'pickup')}
-              fetchDetails={true}
-              query={{
-                key: googleApiKey,
-                language: 'en',
-              }}
-              styles={autoCompleteStyles}
-              enablePoweredByContainer={false}
-              debounce={400}
-            />
-          )}
-          {step === 'destination' && (
-            <GooglePlacesAutocomplete
-              placeholder='Destination Location'
-              onPress={(data, details = null) => handleSetLocation(data, details, 'destination')}
-              fetchDetails={true}
-              query={{
-                key: googleApiKey,
-                language: 'en',
-              }}
-              styles={autoCompleteStyles}
-              enablePoweredByContainer={false}
-              debounce={400}
-            />
-          )}
-        </View>
-        {step === 'destination' && (
-          <TouchableOpacity
-            onPress={() => setStep('pickup')}
-            style={styles.backButton}>
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
-        )}
-      </KeyboardAvoidingView>
+        <TouchableOpacity style={tw`flex-row justify-center w-24 px-4 py-3 rounded-full`} onPress={() => navigation.navigate('RideOptionsCard') }>
+          <Icon name='car' type='font-awesome' color='green' size={16} />
+          <Text style={tw`text-center text-black`}>Ride</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 };
 
-const autoCompleteStyles = {
+const toInputBoxStyles = {
   container: {
-    flex: 0,
+    backgroundColor: 'white',
     paddingTop: 20,
-    paddingBottom: 10,
+    flex: 0,
   },
   textInput: {
-    height: 55,
-    marginVertical: 5,
-    padding: 10,
-    borderColor: 'gray',
-    borderWidth: 1,
-    borderRadius: 5,
-    fontSize: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#DDDDDF',
+    borderRadius: 0,
+    fontSize: 18,
+  },
+  textInputContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 0,
   },
   listView: {
-    borderColor: '#CCCCCC',
-    borderWidth: 1,
-    borderRadius: 5,
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 10,
-    elevation: 1,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    marginTop: 10,
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    zIndex: 10,
   },
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'white',
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: 'black',
-    alignSelf: 'center',
-    paddingBottom: 10,
-  },
-  autocompleteContainer: {
-    flex: 0,
-    zIndex: 1,
-  },
-  backButton: {
-    backgroundColor: 'black',
-    padding: 16,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  backButtonText: {
-    fontSize: 20,
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  currentLocationButton: {
-    backgroundColor: '#e0e0e0',
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  currentLocationButtonText: {
-    fontSize: 16,
-    color: 'black',
-  },
-});
 
 export default NavCard;
