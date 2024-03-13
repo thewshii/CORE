@@ -198,7 +198,7 @@ if (loading) return <ActivityIndicator size="large" color="#0000ff" />;
         </TouchableOpacity>
         <TouchableOpacity
         onPress={confirmBooking}
-        style={tw`bg-red py-3 m-3 ${!selected ? "bg-gray-300" : ""}`}
+        style={tw`bg-yellow py-3 m-3 ${!selected ? "bg-gray-300" : ""}`}
         disabled={!selected}
       >
         <Text style={tw`text-center text-white text-xl`}>Confirm {selected?.title}</Text>
