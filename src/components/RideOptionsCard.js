@@ -8,7 +8,7 @@ import { selectTravelTimeInformation } from '../slices/navSlice';
 import axios from 'axios';
 import { ActivityIndicator } from 'react-native';
 import { selectOrigin, selectDestination } from '../slices/navSlice';
-
+import supabase from '../supabase/supabaseClient';
 
 const GRAPH_HOPPER_API_KEY = '1f8e47e9-fcc5-4c26-8702-06e415fee0aa';
 
@@ -33,31 +33,6 @@ const data = [
   },
 ];
 
-const confirmBooking = async () => {
-  if (!selected || !origin || !destination) {
-    console.error("Required information is missing");
-    return;
-  }
-
-  const { data, error } = await supabase
-    .from('ride_bookings')
-    .insert([
-      {
-        origin: JSON.stringify(origin),
-        destination: JSON.stringify(destination),
-        ubah_type: selected.title,
-        fare: calculateFare(distanceInMiles, selected.multiplier),
-        // Add other necessary fields, e.g., user_id
-      },
-    ]);
-
-  if (error) {
-    console.error("Error confirming booking:", error);
-  } else {
-    console.log("Booking confirmed:", data);
-    // Optionally, navigate to another screen or show a confirmation message
-  }
-};
 
 // Your calculateFare function
 const calculateFare = (distance, multiplier) => {
@@ -91,6 +66,37 @@ const RideOptionsCard = () => {
   const travelTimeInformation = useSelector(selectTravelTimeInformation);
   
   const distanceInMiles = travelTimeInformation?.distance?.value * 0.000621371;
+
+  const confirmBooking = async () => {
+    if (!selected || !origin || !destination) {
+      console.error("Required information is missing");
+      return;
+    }
+  
+    const { data, error } = await supabase
+      .from('ride_bookings')
+      .insert([
+        {
+          pickupLocation: JSON.stringify(origin),
+          dropoffLocation: JSON.stringify(destination),
+          rideType: selected.title,
+          fare: calculateFare(distanceInMiles, selected.multiplier),
+          status: "new"
+  
+          // Add other necessary fields, e.g., user_id
+        },
+      ]);
+
+  
+    if (error) {
+      console.error("Error confirming booking:", error);
+    } else {
+      console.log("Booking confirmed.");
+      alert("Booking confirmed.");
+      // Optionally, navigate to another screen or show a confirmation message
+    }
+  };
+  
 
   useEffect(() => {
     const fetchTravelDistanceGraphHopper = async () => {
@@ -153,12 +159,12 @@ if (loading) return <ActivityIndicator size="large" color="#0000ff" />;
 
   return (
     <SafeAreaView style={tw`bg-white flex-grow`}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={tw`absolute top-3 left-5 z-50 p-3 bg-gray-300 rounded-full`}>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={tw`absolute top-3 left-2 z-50 p-3 bg-gray-300 rounded-full`}>
         <Icon name="chevron-left" type="fontawesome" />
       </TouchableOpacity>
 
       <Text style={tw`text-center py-5 text-xl`}>
-        Select  - {travelTimeInformation?.duration.text} - {travelTimeInformation?.distance.text}
+        {travelTimeInformation?.duration.text} - {travelTimeInformation?.distance.text} {selected?.title}
       </Text>
 
       <FlatList
@@ -166,9 +172,19 @@ if (loading) return <ActivityIndicator size="large" color="#0000ff" />;
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
           const fare = calculateFare(distanceInMiles, item.multiplier);
-          return ( // This return statement was missing.
+
+          // Toggle selection on press
+          const handlePress = () => {
+            if (selected && item.id === selected.id) {
+              setSelected(null); // Deselect if the same item is pressed again
+            } else {
+              setSelected(item); // Set selected to the new item if a different item is pressed
+            }
+          };
+
+          return (
             <TouchableOpacity
-              onPress={() => setSelected(item)}
+              onPress={handlePress} // Updated onPress to handle toggling
               style={tw`flex-row justify-between items-center px-10 py-2 ${item.id === selected?.id ? "bg-gray-200" : ""}`}
             >
               <Image
@@ -180,25 +196,17 @@ if (loading) return <ActivityIndicator size="large" color="#0000ff" />;
               </View>
               <Text style={tw`text-xl`}>${fare}</Text>
             </TouchableOpacity>
-            
           );
         }}
       />
 
 
+
       <View style={tw`mt-auto border-t border-gray-200`}>
-        <TouchableOpacity
-          disabled={!selected}
-          style={tw`bg-black py-3 m-3 ${!selected && "bg-gray-300"}`}
-          onPress={() => console.log('Confirmed Ride:', selected)}
-        >
-          <Text style={tw`text-center text-white text-xl`}>
-            Choose {selected?.title}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+
+      <TouchableOpacity
         onPress={confirmBooking}
-        style={tw`bg-black py-3 m-3 ${!selected ? "bg-gray-300" : ""}`}
+        style={tw`bg-green-900 py-3 m-3 ${!selected ? "bg-gray-300" : ""}`}
         disabled={!selected}
       >
         <Text style={tw`text-center text-white text-xl`}>Confirm</Text>
