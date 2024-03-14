@@ -130,9 +130,16 @@ const PassengerMapView = () => {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={tw`h-full`}>
           <MapView
+
             ref={mapRef}
             style={tw`flex-1`}
             mapType="mutedStandard"
+            provider='google'
+            showsUserLocation={true}
+               
+            showsMyLocationButton={true}
+            showsCompass={true}
+            showsBuildings={true}
             initialRegion={{
               latitude: 18.1322, // Broad area initially shown
               longitude: -64.8116,
@@ -159,7 +166,7 @@ const PassengerMapView = () => {
                 }
               }}
               onError={(errorMessage) => {
-                // Handle API error or route not found error
+                // Handle API error or route not found errSor
                 console.log('GMAPS route request error:', errorMessage);
                 Alert.alert("Route Error", "An error occurred while trying to find a route.");
               }}

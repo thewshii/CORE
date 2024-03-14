@@ -6,6 +6,7 @@ import tw from 'tailwind-react-native-classnames';
 import supabase from '../../supabase/supabaseClient';
 import { useDispatch } from 'react-redux';
 import { fetchTravelInfo } from '../../slices/navSlice';
+import Constants from 'expo-constants';
 
 async function updateDriverLocation(latitude, longitude) {
   const { user, error: userError } = await supabase.auth.getUser();
@@ -67,9 +68,25 @@ function DriverMapView() {
     })();
   }, []);
 
+  const googleApiKey = Constants.expoConfig.extra.googleApiKey;
   return (
     <View style={tw`h-full`}>
-      <MapView style={tw`flex-1`} mapType='mutedStandard'/>
+      <MapView 
+        style={tw`flex-1`} mapType='mutedStandard'
+        provider='google'
+        showsUserLocation={true}
+        showsMyLocationButton={true}
+        showsCompass={true}
+        showsTraffic={true}
+        showsBuildings={true}
+        initialRegion={{
+          latitude: 18.1322, // Broad area initially shown
+          longitude: -64.8116,
+          latitudeDelta: 2,
+          longitudeDelta: 2,
+        }}
+        
+      />
     </View>
   );
 }

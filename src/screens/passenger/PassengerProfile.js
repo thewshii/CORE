@@ -7,42 +7,32 @@ function PassengerProfile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProfile = async (userId) => {
-      const { data, error } = await supabase
-        .from('passengers')
-        .select('*')
-        .eq('id', userId)
-        .single();
+    const fetchProfile = async () => {
+      // Retrieve the current session
+      const session = supabase.auth.getSession();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        setLoading(false);
+      if (session && session.user) {
+        const userId = session.user.id;
+        const { data, error } = await supabase
+          .from('passengers')
+          .select('*')
+          .eq('id', userId) // Make sure 'id' matches the column in your table
+          .single();
+
+        if (error) {
+          console.error('Error fetching profile:', error.message);
+        } else if (data) {
+          setProfile(data);
+        } else {
+          console.error("No profile data found.", error.message);
+        }
       } else {
-        setProfile(data);
-        setLoading(false);
+        console.error("No active session found.");
       }
-    };
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    // Check for an active session on mount in case the listener doesn't trigger immediately
-    const session = supabase.auth.getSession();
-    if (session) {
-      fetchProfile(session.user.id);
-    } else {
       setLoading(false);
-    }
-
-    // Cleanup the listener when the component unmounts
-    return () => {
-      listener.unsubscribe();
     };
+
+    fetchProfile();
   }, []);
 
   if (loading) {
@@ -58,12 +48,11 @@ function PassengerProfile() {
             source={{ uri: profile.avatar_url || 'https://placekitten.com/200/200' }}
             style={styles.avatar}
           />
-          <Text style={styles.info}>Name: {profile.first_name}</Text>
-          <Text style={styles.info}>Last Name: {profile.last_name}</Text>
-          <Text style={styles.info}>Phone: {profile.phone_number}</Text>
+          <Text style={styles.info}>Name: {profile.firstName}</Text>
+          <Text style={styles.info}>Last Name: {profile.lastName}</Text>
+          <Text style={styles.info}>Phone: {profile.phoneNumber}</Text>
           <Text style={styles.info}>Rating: {profile.rating}</Text>
-          <Text style={styles.info}>Total Rides: {profile.total_rides}</Text>
-          {/* Add more profile details here */}
+          <Text style={styles.info}>Total Rides: {profile.totalRides}</Text>
         </>
       ) : (
         <Text>No profile data found.</Text>
