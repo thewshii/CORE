@@ -7,14 +7,7 @@ const Tab = createBottomTabNavigator();
 
 function DriverDashboard() {
 
-  return (
-    <>
-      <Tab.Navigator>
-        <Tab.Screen name="Map" component={DriverMapView} options={{ headerShown: false, tabBarLabel: 'Map'}} />
-        <Tab.Screen name="Profile" component={DriverProfile} options={{ tabBarLabel: 'Profile'}} />
-      </Tab.Navigator>
-    </>
-  );
+  return
 }
 
 export default DriverDashboard;

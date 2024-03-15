@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Platform, Alert } from 'react-native';
+import { View, StyleSheet, Platform, Alert, Text, Dimensions, Pressable } from 'react-native';
 import MapView from 'react-native-maps';
 import * as Location from 'expo-location';
 import tw from 'tailwind-react-native-classnames';
@@ -7,11 +7,14 @@ import supabase from '../../supabase/supabaseClient';
 import { useDispatch } from 'react-redux';
 import { fetchTravelInfo } from '../../slices/navSlice';
 import Constants from 'expo-constants';
+import MapViewDirections from 'react-native-maps-directions';
+import { useSelector } from 'react-redux';
+import { selectDestination, selectOrigin } from '../../slices/navSlice';
+import { Icon } from 'react-native-elements';
 
 async function updateDriverLocation(latitude, longitude) {
   const { user, error: userError } = await supabase.auth.getUser();
   if (userError || !user) {
-    console.error('Failed to fetch user details', userError); // gpt_pilot_debugging_log
     return;
   }
 
@@ -48,6 +51,9 @@ async function updateDriverLocation(latitude, longitude) {
 
 function DriverMapView() {
   const dispatch = useDispatch();
+  const origin = useSelector(selectOrigin);
+  const destination = useSelector(selectDestination);
+  const mapRef = React.useRef(null);
 
   useEffect(() => {
     (async () => {
@@ -59,7 +65,7 @@ function DriverMapView() {
 
       Location.watchPositionAsync({
         accuracy: Location.Accuracy.BestForNavigation,
-        timeInterval: 10000, // Update every 10 seconds
+        timeInterval: 600000, // Update every 10 seconds
         distanceInterval: 10, // Update every 10 meters
       }, ({ coords: { latitude, longitude } }) => {
         console.log('Updating driver location with latitude:', latitude, 'and longitude:', longitude); // gpt_pilot_debugging_log
@@ -72,7 +78,8 @@ function DriverMapView() {
   return (
     <View style={tw`h-full`}>
       <MapView 
-        style={tw`flex-1`} mapType='mutedStandard'
+        ref={mapRef}
+        style={{width: '100%', height: Dimensions.get('window').height - 10}} mapType='mutedStandard'
         provider='google'
         showsUserLocation={true}
         showsMyLocationButton={true}
@@ -82,13 +89,56 @@ function DriverMapView() {
         initialRegion={{
           latitude: 18.1322, // Broad area initially shown
           longitude: -64.8116,
-          latitudeDelta: 2,
-          longitudeDelta: 2,
+          latitudeDelta: 1,
+          longitudeDelta: 1,
         }}
-        
       />
+      <Pressable onPress={() => console.warn('go')} 
+      style={[tw`bg-green-900 shadow-lg`, {position: 'absolute', bottom: 45, alignSelf: 'center', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center'}]}>
+      <Text style={[tw`text-white text-center`, {fontWeight: 'bold'}]}>Go</Text>
+      </Pressable>
+
+     <Pressable onPress={() => console.warn('Pressed')} 
+      style={[tw`bg-white py-3 px-5 rounded-full shadow-lg`, {position: 'absolute', top: 45, left: 10}]}>
+      <Icon name="menu" color="black" size={16} />
+    </Pressable>
+    
+    <Pressable onPress={() => console.warn('go')} 
+    style={[tw`bg-green-900 shadow-lg`, {position: 'absolute', bottom: 45, alignSelf: 'center', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center'}]}>
+    <Text style={[tw`text-white text-center`, {fontWeight: 'bold'}]}>GO</Text>
+    </Pressable>
+
+
+
+
+
+      <MapViewDirections
+        origin={origin}
+        destination={destination}
+        apikey={googleApiKey}
+        strokeWidth={3}
+        strokeColor="black"
+        onReady={(result) => {
+          if (result.distance && result.duration) {
+            mapRef.current?.fitToCoordinates(result.coordinates, {
+              edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+              animated: true,
+            });
+          } else {
+            Alert.alert("Route Not Found", "Could not find a route between the selected origin and destination.");
+          }
+        }}
+        onError={(errorMessage) => {
+          console.log('GMAPS route request error:', errorMessage);
+          Alert.alert("Route Error", "An error occurred while trying to find a route.");
+        }}
+        />
+        <View style={[StyleSheet.absoluteFillObject, tw`justify-center items-center`]}>
+          <Text style={tw`text-center text-white p-2 bg-black bg-opacity-50 rounded-lg`}>You're Offline</Text>
+        </View>
     </View>
   );
 }
+
 
 export default DriverMapView;

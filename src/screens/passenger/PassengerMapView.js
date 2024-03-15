@@ -126,7 +126,13 @@ const PassengerMapView = () => {
       >
         <Icon name="delete" />
       </TouchableOpacity>
-
+      <TouchableOpacity
+        style={tw`absolute top-16 left-8 z-50 p-3 rounded-full`}
+        onPress={() => navigation.navigate('RoleSelect')}
+      >
+        <Icon name="menu" />
+      </TouchableOpacity>
+      
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={tw`h-full`}>
           <MapView

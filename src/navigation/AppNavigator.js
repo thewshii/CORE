@@ -11,6 +11,8 @@ import { configureStore, getDefaultMiddleware } from "@reduxjs/toolkit";
 import navReducer from "../slices/navSlice";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import ConfirmationScreen from '../screens/passenger/ConfirmationScreen';
+import DriverMapView from '../screens/driver/DriverMapView';
+import PassengerMapView from '../screens/passenger/PassengerMapView';
 
 export const store = configureStore({
     reducer: {
@@ -34,8 +36,8 @@ function AppNavigator() {
         <Stack.Screen name='Login' component={LoginScreen} options={{headerShown: false}}/>
         <Stack.Screen name='Register' component={RegisterScreen} options={{headerShown: false}}/>
         <Stack.Screen name='RoleSelect' component={RoleSelectScreen} options={{headerShown: false}}/>
-        <Stack.Screen name='DriverDashboard' component={DriverDashboard} options={{headerShown: false}}/>
-        <Stack.Screen name='PassengerDashboard' component={PassengerDashboard} options={{headerShown: false}}/>
+        <Stack.Screen name='DriverDashboard' component={DriverMapView} options={{headerShown: false}}/>
+        <Stack.Screen name='PassengerDashboard' component={PassengerMapView} options={{headerShown: false}}/>
         <Stack.Screen name="Confirmation" component={ConfirmationScreen} />
       </Stack.Navigator>
     </NavigationContainer>
