@@ -1,20 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { KeyboardAvoidingView, SafeAreaView, Text, View, Platform, TouchableOpacity } from 'react-native';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { Icon } from 'react-native-elements';
 import tw from 'tailwind-react-native-classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { setOrigin, setDestination } from '../slices/navSlice';
+import { setOrigin, setDestination, selectRideConfirmed, selectRideRequestId } from '../slices/navSlice';
 import { useNavigation } from '@react-navigation/native';
 import Constants from 'expo-constants';
-import supabase from '/root/ubah-pilot/gpt-pilot/workspace/CORE/CORE/src/supabase/supabaseClient.js'
 
 const NavCard = () => {
   const [destinationInputVisible, setDestinationInputVisible] = useState(false);
   const dispatch = useDispatch();
   const navigation = useNavigation();
+  const origin = useSelector(state => state.nav.origin);
+  const rideConfirmed = useSelector(selectRideConfirmed);
+  const rideRequestId = useSelector(selectRideRequestId); // Assume you have a selector to get the ride request ID
   const googleApiKey = Constants.expoConfig.extra.googleApiKey; 
-  
+  const [ws, setWs] = useState(null);
+
+  useEffect(() => {
+    const websocket = new WebSocket('ws://50.116.43.117:8080');
+    setWs(websocket);
+
+    websocket.onopen = () => {
+      console.log('WebSocket connected');
+    };
+
+    websocket.onerror = (error) => {
+      console.error('WebSocket Error:', error);
+    };
+
+    return () => {
+      websocket.close();
+    };
+  }, []);
 
   const handleOriginSelect = (data, details = null) => {
     dispatch(setOrigin({
@@ -24,15 +43,23 @@ const NavCard = () => {
         longitude: details.geometry.location.lng,
       },
     }));
+
     setDestinationInputVisible(true);
   };
 
   const handleDestinationSelect = (data, details = null) => {
-    dispatch(setDestination({
-      description: data.description,
-      location: details.geometry.location,
-    }));
-    navigation.navigate('RideOptionsCard'); // Ensure 'RideOptionsCard' is the correct name in your navigator setup
+    const destinationInfo = {
+        description: data.description,
+        location: details.geometry.location,
+    };
+
+    dispatch(setDestination(destinationInfo));
+
+    // Here you should handle the booking process, and after that navigate based on the booking status
+    if (origin && destinationInfo.location) {
+        // Your booking logic
+        navigation.navigate('RideOptionsCard');
+    }
   };
 
   return (
@@ -80,7 +107,16 @@ const NavCard = () => {
           <Icon name='home' type='material' color='green' size={16} />
           <Text style={tw`text-center text-white`}>Home</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={tw`flex-row justify-center w-24 px-4 py-3 rounded-full`} onPress={() => navigation.navigate('RideOptionsCard') }>
+        <TouchableOpacity
+          style={tw`flex-row justify-center w-24 px-4 py-3 rounded-full`}
+          onPress={() => {
+            if (rideConfirmed && rideRequestId) {
+              navigation.navigate('ConfirmedCard', { rideRequestId });
+            } else {
+              navigation.navigate('RideOptionsCard');
+            }
+          }}
+        >
           <Icon name='car' type='font-awesome' color='green' size={16} />
           <Text style={tw`text-center text-black`}>Ride</Text>
         </TouchableOpacity>
@@ -88,6 +124,8 @@ const NavCard = () => {
     </SafeAreaView>
   );
 };
+
+export default NavCard;
 
 const toInputBoxStyles = {
   container: {
@@ -112,5 +150,3 @@ const toInputBoxStyles = {
     zIndex: 10,
   },
 };
-
-export default NavCard;

@@ -6,6 +6,7 @@ import { Provider } from 'react-redux';
 import { store } from './src/navigation/AppNavigator';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider } from './src/components/AuthContext';
 
 console.log("Starting App...");
 
@@ -18,7 +19,9 @@ function App() {
   return (
     <Provider store={store}>
       <SafeAreaProvider>
+        <AuthProvider>   
           <AppNavigator />
+        </AuthProvider>
       </SafeAreaProvider>
     </Provider>
   );

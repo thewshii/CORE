@@ -22,6 +22,7 @@ import Constants from 'expo-constants';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useDispatch, useSelector } from 'react-redux';
 import { setOrigin, setDestination, selectDestination, selectOrigin, setTravelTimeInformation, setTravelInfo } from '../../slices/navSlice';
+import ConfirmedCard from '../../components/ConfirmedCard';
 
 
 const Stack = createStackNavigator();
@@ -195,6 +196,7 @@ const PassengerMapView = () => {
             <Stack.Navigator>
               <Stack.Screen name="NavCard" component={NavCard} options={{ headerShown: false }} />
               <Stack.Screen name="RideOptionsCard" component={RideOptionsCard} options={{ headerShown: false }} />
+              <Stack.Screen name="ConfirmedCard" component={ConfirmedCard} options={{ headerShown: false }} />
             </Stack.Navigator>
           </View>
         </View>

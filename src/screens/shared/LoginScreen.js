@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import supabase from '../../supabase/supabaseClient';
+import tw from 'tailwind-react-native-classnames';
 
 function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -26,6 +27,8 @@ function LoginScreen({ navigation }) {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
       <View style={styles.formContainer}>
+        <Text style={tw`text-center text-xl py-5`}>VI UBAH</Text>
+        <Text style={tw`text-center text-xl py-1`}>Transportation and Tours</Text>
         <TextInput
           placeholder="Email"
           value={email}

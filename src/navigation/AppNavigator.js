@@ -13,10 +13,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import ConfirmationScreen from '../screens/passenger/ConfirmationScreen';
 import DriverMapView from '../screens/driver/DriverMapView';
 import PassengerMapView from '../screens/passenger/PassengerMapView';
+import userReducer from '../slices/userSlice';
+import ConfirmedCard from '../components/ConfirmedCard';
 
 export const store = configureStore({
     reducer: {
         nav: navReducer,
+        user: userReducer,
     },
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({
         serializableCheck: false,
@@ -38,7 +41,7 @@ function AppNavigator() {
         <Stack.Screen name='RoleSelect' component={RoleSelectScreen} options={{headerShown: false}}/>
         <Stack.Screen name='DriverDashboard' component={DriverMapView} options={{headerShown: false}}/>
         <Stack.Screen name='PassengerDashboard' component={PassengerMapView} options={{headerShown: false}}/>
-        <Stack.Screen name="Confirmation" component={ConfirmationScreen} />
+        <Stack.Screen name="ConfirmedCard" component={ConfirmedCard} options={{headerShown: false}}/>
       </Stack.Navigator>
     </NavigationContainer>
     </SafeAreaProvider>
