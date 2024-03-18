@@ -1,46 +1,46 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import tw from 'tailwind-react-native-classnames';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
-import { selectOrigin, selectDestination, selectTravelTimeInformation, selectSelectedRideOption } from '../slices/navSlice';
+import { selectOrigin, selectDestination, selectTravelTimeInformation, setRideConfirmed, setRideRequestId, selectRideRequestId } from '../slices/navSlice';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Icon } from 'react-native-elements';
 import supabase from '../supabase/supabaseClient';
 
-// Assume 1 kilometer = 0.621371 miles
-const kilometersToMiles = (kilometers) => kilometers * 0.621371;
-
-const ConfirmedCard = ({ rideRequest }) => {
+const ConfirmedCard = () => {
     const navigation = useNavigation();
     const origin = useSelector(selectOrigin);
     const destination = useSelector(selectDestination);
     const travelTimeInformation = useSelector(selectTravelTimeInformation);
-    const selectedRideOption = useSelector(selectSelectedRideOption);
+    const rideRequestId = useSelector(selectRideRequestId);
+    const dispatch = useDispatch();
 
     const handleCancel = async () => {
-        if (!rideRequest || !rideRequest.id) {
-            console.error('Ride request data is missing');
+        if (!rideRequestId) {
+            console.error('Ride request ID is missing');
             return;
         }
 
         const { error } = await supabase
-            .from('ride_requests')
+            .from('ride_bookings')
             .update({ status: 'cancelled' })
-            .eq('id', rideRequest.id);
+            .eq('id', rideRequestId);
 
         if (error) {
             console.error('Error updating ride request:', error);
+            Alert.alert("Error", "Failed to cancel the ride.");
         } else {
             console.log('Ride request cancelled successfully');
+            Alert.alert("Success", "Ride has been cancelled.");
+            dispatch(setRideConfirmed(false));
+            dispatch(setRideRequestId(null));
             navigation.navigate('RideOptionsCard');
         }
     };
 
-    const travelTime = travelTimeInformation?.duration.text;
-    const distanceInKm = travelTimeInformation?.distance.value / 1000;
-    const distanceInMiles = kilometersToMiles(distanceInKm);
-    const fare = calculateFare(distanceInMiles, selectedRideOption?.multiplier);
+    const distanceInMiles = (travelTimeInformation?.distance?.value * 0.000621371).toFixed(2);
+    const fare = calculateFare(distanceInMiles, 1); // Assuming multiplier is 1 for simplicity
 
     return (
         <SafeAreaView style={[tw`bg-white p-4 rounded-lg shadow-xl`, styles.card]}>
@@ -54,8 +54,8 @@ const ConfirmedCard = ({ rideRequest }) => {
             <View style={tw`mt-2`}>
                 <Text style={tw`text-sm`}><Text style={tw`font-semibold`}>Origin:</Text> {origin?.description}</Text>
                 <Text style={tw`text-sm`}><Text style={tw`font-semibold`}>Destination:</Text> {destination?.description}</Text>
-                <Text style={tw`text-sm`}><Text style={tw`font-semibold`}>Travel Time:</Text> {travelTime}</Text>
-                <Text style={tw`text-sm`}><Text style={tw`font-semibold`}>Distance:</Text> {`${distanceInMiles.toFixed(2)} miles`}</Text>
+                <Text style={tw`text-sm`}><Text style={tw`font-semibold`}>Travel Time:</Text> {travelTimeInformation?.duration.text}</Text>
+                <Text style={tw`text-sm`}><Text style={tw`font-semibold`}>Distance:</Text> {distanceInMiles} miles</Text>
                 <Text style={tw`text-sm`}><Text style={tw`font-semibold`}>Fare:</Text> ${fare}</Text>
             </View>
             <TouchableOpacity onPress={handleCancel} style={tw`bg-black py-3 m-3 rounded-lg`}>

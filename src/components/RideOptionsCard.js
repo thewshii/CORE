@@ -73,7 +73,6 @@ const RideOptionsCard = () => {
       });
 
       dispatch(setRideConfirmed(true));
-      dispatch(setRideRequestId(data[0].id)); // Storing the ride request ID in Redux
     }
   };
 

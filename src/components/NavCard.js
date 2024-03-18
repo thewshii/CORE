@@ -108,18 +108,19 @@ const NavCard = () => {
           <Text style={tw`text-center text-white`}>Home</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={tw`flex-row justify-center w-24 px-4 py-3 rounded-full`}
-          onPress={() => {
-            if (rideConfirmed && rideRequestId) {
-              navigation.navigate('ConfirmedCard', { rideRequestId });
-            } else {
-              navigation.navigate('RideOptionsCard');
-            }
-          }}
-        >
-          <Icon name='car' type='font-awesome' color='green' size={16} />
-          <Text style={tw`text-center text-black`}>Ride</Text>
-        </TouchableOpacity>
+        style={tw`flex-row justify-center w-24 px-4 py-3 rounded-full`}
+        onPress={() => {
+        if (rideConfirmed) {
+          navigation.navigate('ConfirmedCard', { rideRequestId: rideRequestId });
+        } else {
+           navigation.navigate('RideOptionsCard');
+        }
+       }}
+>
+  <Icon name='car' type='font-awesome' color='green' size={16} />
+  <Text style={tw`text-center text-black`}>Ride</Text>
+</TouchableOpacity>
+
       </View>
     </SafeAreaView>
   );
