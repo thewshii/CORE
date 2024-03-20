@@ -78,10 +78,10 @@ function DriverMapView() {
   };
 
   async function updateDriverLocation(latitude, longitude) {
-    if (!userID) {
-      console.error('User not authenticated');
+    if (!userID || !isOnline) {  // Also check if the driver is online
+      console.error('User not authenticated or offline');
       return;
-    }
+  }
 
     console.log('User ID for location update:', userID, 'with latitude:', latitude, 'and longitude:', longitude);
 
@@ -169,6 +169,7 @@ function DriverMapView() {
 
   
   const googleApiKey = Constants.expoConfig.extra.googleApiKey;
+  
   return (
     <View style={tw`h-full`}>
       <MapView 
@@ -221,30 +222,6 @@ function DriverMapView() {
         <Icon name="arrow-back" color="black" size={25} />
       </TouchableOpacity>
 
-
-
-
-      <MapViewDirections
-        origin={origin}
-        destination={destination}
-        apikey={googleApiKey}
-        strokeWidth={3}
-        strokeColor="black"
-        onReady={(result) => {
-          if (result.distance && result.duration) {
-            mapRef.current?.fitToCoordinates(result.coordinates, {
-              edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
-              animated: true,
-            });
-          } else {
-            Alert.alert("Route Not Found", "Could not find a route between the selected origin and destination.");
-          }
-        }}
-        onError={(errorMessage) => {
-          console.log('GMAPS route request error:', errorMessage);
-          Alert.alert("Route Error", "An error occurred while trying to find a route.");
-        }}
-        />
         <View style={[StyleSheet.absoluteFillObject, tw`justify-center items-center`]} pointerEvents="none">
         <Text style={tw`text-center text-white p-2 bg-black bg-opacity-50 rounded-lg`}>
           {isOnline ? "You're Online" : "You're Offline"}

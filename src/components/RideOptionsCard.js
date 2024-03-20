@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SafeAreaView, Text, View, TouchableOpacity, Image, FlatList, ActivityIndicator } from 'react-native';
 import { Icon } from 'react-native-elements';
 import tw from 'tailwind-react-native-classnames';
@@ -8,7 +8,6 @@ import supabase from '../supabase/supabaseClient';
 import { selectOrigin, selectDestination, selectTravelTimeInformation, setRideConfirmed, setRideRequestId } from '../slices/navSlice';
 import ConfirmedCard from './ConfirmedCard';
 
-
 const rideOptions = [
   { id: "UBAH-X-123", title: "UBAH-eco", multiplier: 1, image: "https://links.papareact.com/3pn" },
   { id: "Uber-XL-456", title: "UBAH-xl", multiplier: 1.2, image: "https://links.papareact.com/5w8" },
@@ -16,65 +15,89 @@ const rideOptions = [
 ];
 
 const RideOptionsCard = () => {
-  const navigation = useNavigation();
-  const [selected, setSelected] = useState(null);
-  const origin = useSelector(selectOrigin);
-  const destination = useSelector(selectDestination);
-  const travelTimeInformation = useSelector(selectTravelTimeInformation);
-  const [confirmedBooking, setConfirmedBooking] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const dispatch = useDispatch();
+    const navigation = useNavigation();
+    const [selected, setSelected] = useState(null);
+    const origin = useSelector(selectOrigin);
+    const destination = useSelector(selectDestination);
+    const travelTimeInformation = useSelector(selectTravelTimeInformation);
+    const [confirmedBooking, setConfirmedBooking] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const dispatch = useDispatch();
+    const websocket = useRef(null);
 
-  const distanceInMiles = travelTimeInformation?.distance?.value * 0.000621371;
+    useEffect(() => {
+        websocket.current = new WebSocket('ws://50.116.43.117:8080');
+        websocket.current.onopen = () => console.log('WebSocket connected');
+        websocket.current.onerror = (error) => console.error('WebSocket Error:', error);
+        return () => {
+            if (websocket.current) {
+                websocket.current.close();
+            }
+        };
+    }, []);
 
-  function calculateFare(distance, multiplier) {
-    const hour = new Date().getHours();
-    const baseFare = (hour >= 6 && hour < 23) ? 10 : (hour >= 23 || hour < 2) ? 15 : 20;
-    const perMileRate = (hour >= 6 && hour < 23) ? 3 : (hour >= 23 || hour < 2) ? 4 : 5;
-    return ((baseFare + (distance * perMileRate)) * multiplier).toFixed(2);
-  }  
+    const distanceInMiles = travelTimeInformation?.distance?.value * 0.000621371;
 
-  useEffect(() => {
-    const websocket = new WebSocket('ws://50.116.43.117:8080');
-    websocket.onopen = () => console.log('WebSocket connected');
-    websocket.onerror = (error) => console.error('WebSocket Error:', error);
-    return () => websocket.close();
-  }, []);
+    function calculateFare(distance, multiplier) {
+        const hour = new Date().getHours();
+        const baseFare = (hour >= 6 && hour < 23) ? 10 : (hour >= 23 || hour < 2) ? 15 : 20;
+        const perMileRate = (hour >= 6 && hour < 23) ? 3 : (hour >= 23 || hour < 2) ? 4 : 5;
+        return ((baseFare + (distance * perMileRate)) * multiplier).toFixed(2);
+    }  
 
-  const confirmBooking = async () => {
-    if (!selected || !origin || !destination || !distanceInMiles) {
-      console.error("Required information is missing");
-      return;
-    }
+    const confirmBooking = async () => {
+        if (!selected || !origin || !destination || !distanceInMiles) {
+            console.error("Required information is missing");
+            return;
+        }
 
-    const fare = calculateFare(distanceInMiles, selected.multiplier);
-    const bookingDetails = {
-      pickupLocation: JSON.stringify(origin),
-      dropoffLocation: JSON.stringify(destination),
-      rideType: selected.title,
-      fare,
-      status: "new",
+        setLoading(true);
+        const fare = calculateFare(distanceInMiles, selected.multiplier);
+        const identifier = Math.floor(Math.random() * 10000000000000000);
+        const bookingDetails = {
+            pickupLocation: JSON.stringify(origin),
+            dropoffLocation: JSON.stringify(destination),
+            rideType: selected.title,
+            fare,
+            status: "new",
+            identifier, 
+        };
+
+        const { data, error } = await supabase.from('ride_bookings').insert([bookingDetails]);
+
+        if (error) {
+            console.error("Error confirming booking:", error);
+            setLoading(false);
+        } else {
+            console.log("Booking confirmed.");
+            alert("Booking confirmed.");
+            dispatch(setRideConfirmed(true));
+            dispatch(setRideRequestId(identifier));
+
+            if (websocket.current && websocket.current.readyState === WebSocket.OPEN) {
+                const rideData = {
+                    type: 'new-ride',
+                    data: bookingDetails
+                };
+                websocket.current.send(JSON.stringify(rideData));
+                console.log('Ride data sent to WebSocket:', rideData);
+            }
+
+            setConfirmedBooking({
+                origin: origin,
+                destination: destination,
+                travelTime: travelTimeInformation?.duration.text,
+                distance: travelTimeInformation?.distance.text,
+                fare,
+                identifier,
+            });
+
+            setLoading(false);
+        }
     };
 
-    const { data, error } = await supabase.from('ride_bookings').insert([bookingDetails]);
 
-    if (error) {
-      console.error("Error confirming booking:", error);
-    } else {
-      console.log("Booking confirmed.");
-      alert("Booking confirmed.");
-      setConfirmedBooking({
-        // Assuming the first item is the ride request
-        origin: origin,
-        destination: destination,
-        travelTime: travelTimeInformation?.duration.text,
-        distance: travelTimeInformation?.distance.text,
-        fare,
-      });
 
-      dispatch(setRideConfirmed(true));
-    }
-  };
 
   if (loading) {
     return <ActivityIndicator size="large" color="#0000ff" />;

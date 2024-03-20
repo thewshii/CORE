@@ -1,24 +1,23 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { SafeAreaView, Text, TouchableOpacity, StyleSheet, Alert, View } from 'react-native';
 import tw from 'tailwind-react-native-classnames';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { selectOrigin, selectDestination, selectTravelTimeInformation, setRideConfirmed, setRideRequestId, selectRideRequestId } from '../slices/navSlice';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Icon } from 'react-native-elements';
 import supabase from '../supabase/supabaseClient';
 
 const ConfirmedCard = () => {
     const navigation = useNavigation();
+    const dispatch = useDispatch();
     const origin = useSelector(selectOrigin);
     const destination = useSelector(selectDestination);
     const travelTimeInformation = useSelector(selectTravelTimeInformation);
     const rideRequestId = useSelector(selectRideRequestId);
-    const dispatch = useDispatch();
 
     const handleCancel = async () => {
         if (!rideRequestId) {
-            console.error('Ride request ID is missing');
+            Alert.alert("Error", "Ride request ID is missing");
             return;
         }
 
@@ -28,22 +27,27 @@ const ConfirmedCard = () => {
             .eq('id', rideRequestId);
 
         if (error) {
-            console.error('Error updating ride request:', error);
-            Alert.alert("Error", "Failed to cancel the ride.");
+            Alert.alert("Error", "Failed to cancel the ride. Please try again.", error.message);
         } else {
-            console.log('Ride request cancelled successfully');
-            Alert.alert("Success", "Ride has been cancelled.");
+            navigation.goBack();
+            Alert.alert("Ride Cancelled", "Your ride has been successfully cancelled, schedule another.");
             dispatch(setRideConfirmed(false));
             dispatch(setRideRequestId(null));
-            navigation.navigate('RideOptionsCard');
         }
+    };
+
+    const calculateFare = (distance, multiplier) => {
+        const hour = new Date().getHours();
+        const baseFare = hour >= 6 && hour < 23 ? 10 : 15;
+        const perMileRate = hour >= 6 && hour < 23 ? 3 : 4;
+        return ((baseFare + (distance * perMileRate)) * multiplier).toFixed(2);
     };
 
     const distanceInMiles = (travelTimeInformation?.distance?.value * 0.000621371).toFixed(2);
     const fare = calculateFare(distanceInMiles, 1); // Assuming multiplier is 1 for simplicity
 
     return (
-        <SafeAreaView style={[tw`bg-white p-4 rounded-lg shadow-xl`, styles.card]}>
+        <SafeAreaView style={tw`bg-white p-4 rounded-lg shadow-xl`}>
             <TouchableOpacity
                 style={tw`absolute top-3 left-5 p-3 rounded-full`}
                 onPress={() => navigation.goBack()}
@@ -65,20 +69,4 @@ const ConfirmedCard = () => {
     );
 };
 
-const styles = StyleSheet.create({
-    card: {
-        margin: 10,
-        padding: 10,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-    },
-});
-
 export default ConfirmedCard;
-
-function calculateFare(distance, multiplier) {
-    const hour = new Date().getHours();
-    const baseFare = hour >= 6 && hour < 23 ? 10 : hour >= 23 || hour < 2 ? 15 : 20;
-    const perMileRate = hour >= 6 && hour < 23 ? 3 : hour >= 23 || hour < 2 ? 4 : 5;
-    return ((baseFare + (distance * perMileRate)) * multiplier).toFixed(2);
-}
