@@ -49,6 +49,7 @@ function DriverMapView() {
   const declineRide = (rideId) => {
     setRideRequests(prevRequests => prevRequests.filter(request => request.id !== rideId));
     Alert.alert('Ride Declined', 'You have declined the ride.');
+
   };
 
   async function toggleOnlineStatus() {
