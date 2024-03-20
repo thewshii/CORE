@@ -76,11 +76,10 @@ const RideOptionsCard = () => {
 
             if (websocket.current && websocket.current.readyState === WebSocket.OPEN) {
                 const rideData = {
-                    type: 'new-ride',
+                    type: 'ride',
                     data: bookingDetails
                 };
                 websocket.current.send(JSON.stringify(rideData));
-                console.log('Ride data sent to WebSocket:', rideData);
             }
 
             setConfirmedBooking({
