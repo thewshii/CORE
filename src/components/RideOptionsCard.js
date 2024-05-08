@@ -5,13 +5,14 @@ import tw from 'tailwind-react-native-classnames';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import supabase from '../supabase/supabaseClient';
-import { selectOrigin, selectDestination, selectTravelTimeInformation, setRideConfirmed, setRideRequestId } from '../slices/navSlice';
+import { selectOrigin, selectDestination, selectTravelTimeInformation, setRideConfirmed, setRideRequestId, setRideStatus } from '../slices/navSlice';
 import ConfirmedCard from './ConfirmedCard';
+import { selectUser } from '../slices/userSlice';
 
 const rideOptions = [
-  { id: "UBAH-X-123", title: "UBAH-eco", multiplier: 1, image: "https://links.papareact.com/3pn" },
-  { id: "Uber-XL-456", title: "UBAH-xl", multiplier: 1.2, image: "https://links.papareact.com/5w8" },
-  { id: "Uber-LUX-789", title: "UBAH-lux", multiplier: 1.75, image: "https://links.papareact.com/7pf" },
+  { id: "X-123", title: "ECO", multiplier: 1, image: "https://links.papareact.com/3pn" },
+  { id: "XL-456", title: "XL", multiplier: 1.2, image: "https://links.papareact.com/5w8" },
+  { id: "LUX-789", title: "LUXE", multiplier: 1.75, image: "https://links.papareact.com/7pf" },
 ];
 
 const RideOptionsCard = () => {
@@ -24,6 +25,43 @@ const RideOptionsCard = () => {
     const [loading, setLoading] = useState(false);
     const dispatch = useDispatch();
     const websocket = useRef(null);
+    const user = useSelector(selectUser);
+    const [passengerName, setPassengerName] = useState(null);
+    // need to create a reference to passengers table to retrieve the name of the passenger
+
+const fetchPassengerName = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('passengers')
+      .select('firstName')
+      .eq('id', user)
+      .single();
+
+    console.log("Passenger name data:", data);
+
+    let fname = null;
+    
+    if (error) {
+      console.error("Error fetching passenger name:", error);
+      return null;
+    } else {
+      fname = data?.firstName;
+      console.log("Passenger name fetched successfully:", fname);
+      setPassengerName(fname);
+      console.log("Passenger name:", fname);
+    } if (fname) {
+      return fname;
+    } else {
+      return null;
+    }
+
+
+
+  } catch (error) {
+    console.error("Error fetching passenger name:", error);
+    return null;
+  }
+};
 
     useEffect(() => {
         websocket.current = new WebSocket('ws://50.116.43.117:8080');
@@ -46,53 +84,74 @@ const RideOptionsCard = () => {
     }  
 
     const confirmBooking = async () => {
-        if (!selected || !origin || !destination || !distanceInMiles) {
-            console.error("Required information is missing");
-            return;
+      if (!selected || !origin || !destination || !distanceInMiles) {
+        console.error("Required information is missing");
+        return;
+      }
+
+      const passengerName = await fetchPassengerName();
+      
+
+      setLoading(true);
+      const fare = calculateFare(distanceInMiles, selected.multiplier);
+      const identifier = Math.floor(Math.random() * 10000000000000000);
+      const bookingDetails = {
+        pickupLocation: JSON.stringify(origin),
+        dropoffLocation: JSON.stringify(destination),
+        rideType: selected.title,
+        fare,
+        status: "new",
+        identifier, 
+        pickupLatitude: origin.location.latitude,
+        pickupLongitude: origin.location.longitude,
+        dropoffLatitude: destination.location.lat,
+        dropoffLongitude: destination.location.lng,
+        dropoffDesc: destination.description,
+        pickupDesc: origin.description,
+        passengerName: passengerName, 
+      };
+    
+      
+    
+      const { error } = await supabase.from('ride_bookings').insert([bookingDetails]);
+    
+      if (error ) {
+        console.error("Error confirming booking:", error);
+        setLoading(false);
+      } else {
+        console.log("Booking confirmed.");
+        alert("Booking confirmed.");
+        dispatch(setRideConfirmed(true));
+        dispatch(setRideRequestId(identifier));
+    
+        if (websocket.current && websocket.current.readyState === WebSocket.OPEN) {
+          const rideData = {
+            type: 'ride',
+            data: bookingDetails
+          };
+          websocket.current.send(JSON.stringify(rideData));
         }
-
-        setLoading(true);
-        const fare = calculateFare(distanceInMiles, selected.multiplier);
-        const identifier = Math.floor(Math.random() * 10000000000000000);
-        const bookingDetails = {
-            pickupLocation: JSON.stringify(origin),
-            dropoffLocation: JSON.stringify(destination),
-            rideType: selected.title,
-            fare,
-            status: "new",
-            identifier, 
-        };
-
-        const { data, error } = await supabase.from('ride_bookings').insert([bookingDetails]);
-
-        if (error) {
-            console.error("Error confirming booking:", error);
-            setLoading(false);
-        } else {
-            console.log("Booking confirmed.");
-            alert("Booking confirmed.");
-            dispatch(setRideConfirmed(true));
-            dispatch(setRideRequestId(identifier));
-
-            if (websocket.current && websocket.current.readyState === WebSocket.OPEN) {
-                const rideData = {
-                    type: 'ride',
-                    data: bookingDetails
-                };
-                websocket.current.send(JSON.stringify(rideData));
-            }
-
-            setConfirmedBooking({
-                origin: origin,
-                destination: destination,
-                travelTime: travelTimeInformation?.duration.text,
-                distance: travelTimeInformation?.distance.text,
-                fare,
-                identifier,
-            });
-
-            setLoading(false);
-        }
+    
+        setConfirmedBooking({
+          origin: origin,
+          destination: destination,
+          travelTime: travelTimeInformation?.duration.text,
+          distance: travelTimeInformation?.distance.text,
+          fare,
+          identifier,
+          pickupLatitude: origin.location.latitude,
+          pickupLongitude: origin.location.longitude,
+          dropoffLatitude: destination.location.latitude,
+          dropoffLongitude: destination.location.longitude,
+          dropoffDesc: destination.description,
+          pickupDesc: origin.description,
+          rideType: selected.title,
+          passengerName,
+          status: "pending",
+        });
+    
+        setLoading(false);
+      }
     };
 
 

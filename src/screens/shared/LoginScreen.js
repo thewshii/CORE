@@ -27,7 +27,7 @@ function LoginScreen({ navigation }) {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
       <View style={styles.formContainer}>
-        <Text style={tw`text-center text-xl py-5`}>VI UBAH</Text>
+        <Text style={tw`text-center text-xl py-5`}>Kech</Text>
         <Text style={tw`text-center text-xl py-1`}>Transportation and Tours</Text>
         <TextInput
           placeholder="Email"

@@ -1,5 +1,13 @@
 {
   "expo": {
+    "plugins": [
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsDownloadToken": "sk.ey.."
+        }
+      ]
+    ],
     "name": "CORE",
     "slug": "CORE",
     "version": "1.0.0",

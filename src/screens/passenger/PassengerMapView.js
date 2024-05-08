@@ -61,23 +61,32 @@ const PassengerMapView = () => {
     })();
   }, [origin]);
 
-  // Watch for changes in origin and destination
   useEffect(() => {
     if (origin && destination && mapRef.current) {
-      // Fit route between origin and destination
-      mapRef.current.fitToCoordinates([
-        {
-          latitude: origin.location.latitude,
-          longitude: origin.location.longitude,
-        },
-        {
-          latitude: destination.location.lat,
-          longitude: destination.location.lng,
-        },
-      ], {
-        edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
-        animated: true,
-      });
+      // Animate to the pickup address
+      mapRef.current.animateToRegion({
+        latitude: origin.location.latitude,
+        longitude: origin.location.longitude,
+        latitudeDelta: 0.01, // Adjust these values as needed
+        longitudeDelta: 0.01,
+      }, 3500); // Duration of the animation in milliseconds
+  
+      // Wait for the animation to finish, then fit the route between origin and destination
+      setTimeout(() => {
+        mapRef.current.fitToCoordinates([
+          {
+            latitude: origin.location.latitude,
+            longitude: origin.location.longitude,
+          },
+          {
+            latitude: destination.location.lat,
+            longitude: destination.location.lng,
+          },
+        ], {
+          edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+          animated: true,
+        });
+      }, 3500); // Wait for the same duration as the animation
     }
   }, [origin, destination]);
 
@@ -154,7 +163,7 @@ const PassengerMapView = () => {
               longitudeDelta: 2,
             }}
           >
-            {origin && destination && (
+            {origin?.description && destination?.description && (
               <MapViewDirections
               origin={origin.description}
               destination={destination.description}

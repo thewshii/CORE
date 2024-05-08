@@ -41,6 +41,7 @@ export const navSlice = createSlice({
     error: null,
     rideConfirmed: false,
     rideRequestId: null,  // Add a property to store the ride request ID
+    rideStatus: 'pending',
   },
   reducers: {
     setOrigin: (state, action) => {
@@ -67,6 +68,9 @@ export const navSlice = createSlice({
     setRideRequestId: (state, action) => {  // Add a reducer to set the ride request ID
       state.rideRequestId = action.payload;
     },
+    setRideStatus: (state, action) => {
+      state.rideStatus = action.payload;
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -92,7 +96,8 @@ export const {
   setTravelDistance, 
   clearError, 
   setRideConfirmed,
-  setRideRequestId  // Export the new action
+  setRideRequestId,  // Export the new action
+  setRideStatus
 } = navSlice.actions;
 
 export const selectOrigin = (state) => state.nav.origin;
@@ -104,5 +109,7 @@ export const selectFetchStatus = (state) => state.nav.fetchStatus;
 export const selectError = (state) => state.nav.error;
 export const selectRideConfirmed = (state) => state.nav.rideConfirmed;
 export const selectRideRequestId = (state) => state.nav.rideRequestId;  // Add a selector for the ride request ID
+export const selectRideStatus = (state) => state.nav.rideStatus;
+
 
 export default navSlice.reducer;
