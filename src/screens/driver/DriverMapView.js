@@ -345,12 +345,6 @@ function DriverMapView() {
                   >
                     <Text style={tw`text-white text-center font-semibold`}>Accept</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => declineRide(item.id)}
-                    style={tw`bg-red-500 p-2 rounded-lg mt-2`}
-                  >
-                    <Text style={tw`text-white text-center font-semibold`}>Decline</Text>
-                  </TouchableOpacity>
                 </View>
               )}
               windowSize={1}
