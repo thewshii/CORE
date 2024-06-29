@@ -19,7 +19,7 @@
     "@supabase/supabase-js": "^2.39.4",
     "axios": "^1.6.7",
     "connect": "^3.7.0",
-    "expo": "~50.0.6",
+    "expo": "^51.0.14",
     "expo-constants": "~15.4.5",
     "expo-location": "~16.5.3",
     "expo-status-bar": "~1.11.1",
